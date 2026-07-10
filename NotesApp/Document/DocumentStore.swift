@@ -181,11 +181,12 @@ final class DocumentStore {
         }
         stateObserver = NotificationCenter.default.addObserver(
             forName: UIDocument.stateChangedNotification, object: document, queue: .main
-        ) { notification in
-            // queue: .main guarantees the main thread; a Task hop would have
-            // to "send" the non-Sendable document across isolation.
+        ) { [weak document] _ in
+            // Safe: queue .main pins this block to the main thread, so the
+            // reference never actually crosses isolation.
+            nonisolated(unsafe) let document = document
             MainActor.assumeIsolated {
-                guard let document = notification.object as? NoteDocument else { return }
+                guard let document else { return }
                 if document.documentState.contains(.inConflict) {
                     ConflictResolver.resolveConflicts(for: document)
                 }
@@ -196,7 +197,9 @@ final class DocumentStore {
     // MARK: Saving
 
     /// Saves if there are unsaved changes (used on scene background / exit).
-    func saveNow(completion: (() -> Void)? = nil) {
+    /// The completion is a `@MainActor` closure — that makes it Sendable, so
+    /// it can travel through UIDocument's completion handler.
+    func saveNow(completion: (@MainActor () -> Void)? = nil) {
         guard let document, document.hasUnsavedChanges else {
             completion?()
             return
