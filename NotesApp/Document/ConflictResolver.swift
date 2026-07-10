@@ -30,16 +30,29 @@ enum ConflictResolver {
 
         document.replaceNote(merged)
 
-        // Marking versions resolved is deliberately the LAST step.
-        for version in conflictVersions {
-            version.isResolved = true
-        }
-        let coordinator = NSFileCoordinator(filePresenter: nil)
-        coordinator.coordinate(writingItemAt: url, options: .forDeleting, error: nil) { coordinatedURL in
-            do {
-                try NSFileVersion.removeOtherVersionsOfItem(at: coordinatedURL)
-            } catch {
-                NSLog("ConflictResolver: failed to prune versions: \(error)")
+        // Persist the merge FIRST — only then mark the versions resolved and
+        // prune them. Marking before the merged content is on disk would let
+        // a crash/kill permanently delete the other device's data. On save
+        // failure the versions stay unresolved, so resolution retries on the
+        // next document state change.
+        document.save(to: url, for: .forOverwriting) { success in
+            nonisolated(unsafe) let versions = conflictVersions
+            MainActor.assumeIsolated {
+                guard success else {
+                    NSLog("ConflictResolver: merge save failed; leaving versions unresolved")
+                    return
+                }
+                for version in versions {
+                    version.isResolved = true
+                }
+                let coordinator = NSFileCoordinator(filePresenter: nil)
+                coordinator.coordinate(writingItemAt: url, options: .forDeleting, error: nil) { coordinatedURL in
+                    do {
+                        try NSFileVersion.removeOtherVersionsOfItem(at: coordinatedURL)
+                    } catch {
+                        NSLog("ConflictResolver: failed to prune versions: \(error)")
+                    }
+                }
             }
         }
         return true

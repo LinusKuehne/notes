@@ -50,6 +50,26 @@ import Testing
         #expect(merged.pages.map(\.id) == [p1.id, inserted.id, p2.id])
     }
 
+    @Test func consecutiveSecondaryOnlyPagesKeepTheirOrder() {
+        let a = Page(text: "a", textModified: t3)
+        let b = Page(text: "b", textModified: t3)
+        let x = Page(text: "x", textModified: t1)
+        let y = Page(text: "y", textModified: t1)
+        let z = Page(text: "z", textModified: t1)
+        // Primary (newer): [a, b]. Secondary added x, y, z after a.
+        let merged = NoteMerger.merge(Note(pages: [a, b]), Note(pages: [a, x, y, z, b]))
+        #expect(merged.pages.map(\.id) == [a.id, x.id, y.id, z.id, b.id])
+    }
+
+    @Test func secondaryOnlyPagesAtTheStartArePrepended() {
+        let a = Page(text: "a", textModified: t3)
+        let x = Page(text: "x", textModified: t1)
+        let y = Page(text: "y", textModified: t1)
+        // Primary (newer): [a]. Secondary added x, y before a.
+        let merged = NoteMerger.merge(Note(pages: [a]), Note(pages: [x, y, a]))
+        #expect(merged.pages.map(\.id) == [x.id, y.id, a.id])
+    }
+
     @Test func secondaryOnlyPageInsertsAfterItsPredecessor() {
         let p1 = Page(text: "1", textModified: t3)
         let p2 = Page(text: "2", textModified: t3)

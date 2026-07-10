@@ -168,15 +168,6 @@ final class PageView: UIView {
         }
     }
 
-    // MARK: Interaction routing
-
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let view = super.hitTest(point, with: event)
-        if view != nil {
-            delegate?.pageViewDidBeginInteraction(self)
-        }
-        return view
-    }
 }
 
 // MARK: - PKCanvasViewDelegate
@@ -186,9 +177,23 @@ extension PageView: PKCanvasViewDelegate {
         guard !isProgrammaticUpdate else { return }
         drawing = canvasView.drawing
         // Stroke-end events arrive at human rate, so serializing here is fine
-        // and keeps the model (and autosave) always current.
-        serializedDrawing = canvasView.drawing.dataRepresentation()
+        // and keeps the model (and autosave) always current. A stroke-free
+        // drawing must serialize to empty Data — a zero-stroke PKDrawing
+        // archive is non-empty, which would defeat Page.isEmpty (trailing
+        // blank trimming, PDF export skipping) forever after the first
+        // touch-and-undo.
+        serializedDrawing = canvasView.drawing.strokes.isEmpty
+            ? Data()
+            : canvasView.drawing.dataRepresentation()
         delegate?.pageView(self, didChangeDrawingData: serializedDrawing)
+    }
+
+    // Interaction begin is detected here (an actual drawing action) rather
+    // than in hitTest — hitTest must stay a pure query; it fires for hover
+    // and scroll touches and mutating the responder chain there causes
+    // tool-picker churn.
+    func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+        delegate?.pageViewDidBeginInteraction(self)
     }
 }
 
@@ -197,5 +202,9 @@ extension PageView: PKCanvasViewDelegate {
 extension PageView: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
         delegate?.pageView(self, didChangeText: textView.text ?? "")
+    }
+
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        delegate?.pageViewDidBeginInteraction(self)
     }
 }

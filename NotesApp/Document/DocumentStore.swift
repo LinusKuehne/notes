@@ -33,6 +33,7 @@ final class DocumentStore {
 
     private var stateObserver: (any NSObjectProtocol)?
     private var identityObserver: (any NSObjectProtocol)?
+    private var locateTask: Task<Void, Never>?
 
     private nonisolated static let containerIdentifier = "iCloud.com.linuskuehne.notes"
 
@@ -56,17 +57,29 @@ final class DocumentStore {
         identityObserver = NotificationCenter.default.addObserver(
             forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.restart() }
+            nonisolated(unsafe) let self = self
+            MainActor.assumeIsolated { self?.restart() }
         }
-        Task { await locateAndOpen() }
+        locateTask = Task { await locateAndOpen() }
     }
 
+    /// Re-runs the locate/open flow (iCloud sign-in/out). Must also work
+    /// while a previous locate is still in flight or has failed — i.e. when
+    /// no document is open.
     private func restart() {
+        locateTask?.cancel()
         let document = document
         self.document = nil
         phase = .starting
-        document?.close { _ in
-            Task { @MainActor in await self.locateAndOpen() }
+        guard let document else {
+            locateTask = Task { await locateAndOpen() }
+            return
+        }
+        document.close { [weak self] _ in
+            nonisolated(unsafe) let self = self
+            MainActor.assumeIsolated {
+                self?.locateTask = Task { await self?.locateAndOpen() }
+            }
         }
     }
 
@@ -75,6 +88,7 @@ final class DocumentStore {
         let cloudDocuments = await Task.detached(priority: .userInitiated) {
             Self.ubiquityDocumentsURL()
         }.value
+        guard !Task.isCancelled else { return }
 
         let localURL = Self.localDocumentsURL.appendingPathComponent(NoteDocument.fileName, isDirectory: true)
 
@@ -91,6 +105,7 @@ final class DocumentStore {
 
         // 2. Does the note exist in iCloud (possibly not downloaded yet)?
         let existsInCloud = await UbiquitousItemFinder.itemExists(named: NoteDocument.fileName)
+        guard !Task.isCancelled else { return }
 
         if existsInCloud {
             phase = .downloading
@@ -140,21 +155,34 @@ final class DocumentStore {
                 document.save(to: url, for: .forCreating) { continuation.resume(returning: $0) }
             }
         }
+        if Task.isCancelled {
+            // A restart superseded this locate; don't publish the document.
+            if opened { document.close(completionHandler: nil) }
+            return
+        }
 
         guard opened else {
             phase = .failed("Could not \(exists ? "open" : "create") the note at \(url.lastPathComponent).")
             return
         }
 
-        // A local copy from before iCloud was enabled: merge it in, delete it.
+        // A local copy from before iCloud was enabled: merge it in, and only
+        // delete it once the merged content is actually on disk in the cloud
+        // document (a kill before autosave must not lose the local note).
         if let localURL {
             do {
                 let localNote = try Self.loadNote(at: localURL)
                 document.replaceNote(NoteMerger.merge(document.note, localNote))
-                Task.detached {
-                    let coordinator = NSFileCoordinator(filePresenter: nil)
-                    coordinator.coordinate(writingItemAt: localURL, options: .forDeleting, error: nil) {
-                        try? FileManager.default.removeItem(at: $0)
+                document.save(to: document.fileURL, for: .forOverwriting) { success in
+                    guard success else {
+                        NSLog("DocumentStore: merged save failed; keeping local copy")
+                        return
+                    }
+                    Task.detached {
+                        let coordinator = NSFileCoordinator(filePresenter: nil)
+                        coordinator.coordinate(writingItemAt: localURL, options: .forDeleting, error: nil) {
+                            try? FileManager.default.removeItem(at: $0)
+                        }
                     }
                 }
             } catch {
@@ -164,6 +192,11 @@ final class DocumentStore {
 
         self.document = document
         observeState(of: document)
+        // A conflict may already exist at open time (both devices synced
+        // while the app was closed) — no further state change will fire.
+        if document.documentState.contains(.inConflict) {
+            ConflictResolver.resolveConflicts(for: document)
+        }
         phase = .ready
         noteGeneration += 1
     }

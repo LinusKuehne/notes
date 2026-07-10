@@ -31,6 +31,10 @@ final class NotebookViewController: UIViewController {
     private weak var activePageView: PageView?
 
     private var lastKnownSize: CGSize = .zero
+    /// Zoom-compensated scale applied to live canvases (0 = display default).
+    /// Freshly materialized canvases must get it too, or their ink renders
+    /// blurrier than neighbors while zoomed in.
+    private var canvasContentScale: CGFloat = 0
 
     init(document: NoteDocument, tools: ToolCoordinator) {
         self.document = document
@@ -65,7 +69,7 @@ final class NotebookViewController: UIViewController {
         guard view.bounds.size != lastKnownSize else { return }
         lastKnownSize = view.bounds.size
         scrollView.frame = view.bounds
-        updateZoomLimits(resetZoom: scrollView.zoomScale == 0 || scrollView.zoomScale < scrollView.minimumZoomScale)
+        updateZoomLimits()
         layoutContent()
     }
 
@@ -79,8 +83,8 @@ final class NotebookViewController: UIViewController {
             pageView.removeFromSuperview()
         }
         pageViews = [:]
+        activePageView = nil
         layoutContent()
-        updateVisibleWindow()
     }
 
     private func rebuildDisplayedPages() {
@@ -90,21 +94,30 @@ final class NotebookViewController: UIViewController {
 
     private func layoutContent() {
         let height = layout.contentHeight(pageCount: displayedPages.count)
-        contentView.frame = CGRect(x: 0, y: 0, width: A4.width, height: height)
-        contentView.setNeedsDisplay()
-        scrollView.contentSize = CGSize(
-            width: A4.width * scrollView.zoomScale,
-            height: height * scrollView.zoomScale
+        let zoom = scrollView.zoomScale
+        // bounds + center are transform-safe; setting `frame` is undefined
+        // while the scroll view's zoom transform is applied to contentView
+        // and would corrupt the paper-point coordinate space.
+        contentView.bounds = CGRect(x: 0, y: 0, width: A4.width, height: height)
+        scrollView.contentSize = CGSize(width: A4.width * zoom, height: height * zoom)
+        contentView.center = CGPoint(
+            x: scrollView.contentSize.width / 2,
+            y: scrollView.contentSize.height / 2
         )
+        contentView.setNeedsDisplay()
         centerContent()
         positionPageViews()
+        updateVisibleWindow()
     }
 
-    private func updateZoomLimits(resetZoom: Bool) {
+    private func updateZoomLimits() {
+        // Compute the new fit BEFORE comparing — UIScrollView does not clamp
+        // zoomScale when the limits change, and the initial zoomScale (1.0)
+        // is below fit-width on every iPad.
         let fit = NotebookLayout.fitScale(containerWidth: Double(view.bounds.width), margin: 12)
         scrollView.minimumZoomScale = fit
         scrollView.maximumZoomScale = fit * 3
-        if resetZoom {
+        if scrollView.zoomScale < fit {
             scrollView.zoomScale = fit
         }
     }
@@ -147,6 +160,11 @@ final class NotebookViewController: UIViewController {
         let neededIDs = Set(materialized.map { displayedPages[$0].id })
 
         for (pageID, pageView) in pageViews where !neededIDs.contains(pageID) {
+            if let canvas = pageView.canvasView {
+                // Remember the picker selection so freshly created canvases
+                // don't fall back to the default black pen.
+                tools.noteCurrentTool(from: canvas)
+            }
             if pageView === activePageView { activePageView = nil }
             pageView.setMode(.snapshot, tools: tools)
             pageView.removeFromSuperview()
@@ -171,6 +189,17 @@ final class NotebookViewController: UIViewController {
             pageView.configure(page: page, pageNumber: index + 1)
             pageView.setMode(live.contains(index) ? .live : .snapshot, tools: tools)
             pageView.applyInteractionMode(tools.mode)
+            if let canvas = pageView.canvasView {
+                canvas.contentScaleFactor = max(canvasContentScale, traitCollection.displayScale)
+            }
+        }
+
+        // Keep the tool picker anchored to a live canvas: without a first
+        // responder it slides away (e.g. after its page was evicted above).
+        if tools.mode == .draw, activePageView == nil,
+           let pageView = mostVisiblePageView(), let canvas = pageView.canvasView {
+            activePageView = pageView
+            tools.activate(canvas)
         }
     }
 
@@ -201,6 +230,18 @@ final class NotebookViewController: UIViewController {
         } else {
             var note = document.note
             note.updatePage(page)
+            if page.isEmpty, note.pages.last?.id == page.id {
+                // The last persisted page was fully emptied: trim trailing
+                // empties (matching what a save would persist) and reuse the
+                // emptied page as the view-only trailing blank, so screen and
+                // disk never diverge.
+                note = note.normalizedForSave()
+                pendingBlankPage = page
+                document.updateNote(note)
+                rebuildDisplayedPages()
+                layoutContent()
+                return
+            }
             document.updateNote(note)
         }
     }
@@ -251,9 +292,9 @@ extension NotebookViewController: UIScrollViewDelegate {
         // layer's scale doesn't track the parent's zoom. Bump the content
         // scale (capped — GPU memory grows with scale²).
         let displayScale = traitCollection.displayScale
-        let target = min(displayScale * scale, 3 * displayScale, 6)
+        canvasContentScale = min(displayScale * scale, 3 * displayScale, 6)
         for (_, pageView) in pageViews {
-            pageView.canvasView?.contentScaleFactor = max(target, displayScale)
+            pageView.canvasView?.contentScaleFactor = max(canvasContentScale, displayScale)
         }
     }
 }
@@ -276,6 +317,9 @@ extension NotebookViewController: PageViewDelegate {
     }
 
     func pageViewDidBeginInteraction(_ pageView: PageView) {
+        if let canvas = pageView.canvasView {
+            tools.noteCurrentTool(from: canvas)
+        }
         guard pageView !== activePageView else { return }
         activePageView = pageView
         if tools.mode == .draw, let canvas = pageView.canvasView {

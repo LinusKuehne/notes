@@ -28,16 +28,21 @@ public struct NoteMerger {
 
         // Insert pages that exist only in `secondary`, preserving their local
         // neighborhood: each goes right after its predecessor in `secondary`.
+        // The predecessor is looked up against everything already merged (not
+        // just primary), so a run of consecutively added pages keeps its
+        // order instead of reversing around a common anchor.
+        var mergedIDs = primaryIDs
         for (index, page) in secondary.pages.enumerated() where !primaryIDs.contains(page.id) {
-            let predecessor = secondary.pages[..<index].last { primaryIDs.contains($0.id) }
+            let predecessor = secondary.pages[..<index].last { mergedIDs.contains($0.id) }
             if let predecessor,
                let anchor = merged.firstIndex(where: { $0.id == predecessor.id }) {
                 merged.insert(page, at: anchor + 1)
-            } else if predecessor == nil, index < secondary.pages.count {
-                merged.insert(page, at: min(index, merged.count))
+            } else if predecessor == nil {
+                merged.insert(page, at: 0)
             } else {
                 merged.append(page)
             }
+            mergedIDs.insert(page.id)
         }
 
         return Note(pages: merged)

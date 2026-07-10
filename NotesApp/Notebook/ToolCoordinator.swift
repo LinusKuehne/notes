@@ -40,6 +40,12 @@ final class ToolCoordinator {
 
     @ObservationIgnored let toolPicker = PKToolPicker()
 
+    /// Last tool observed on a live canvas (iPad). PKToolPicker only pushes
+    /// its selection to observers on *changes*, so freshly created canvases
+    /// would otherwise start with the default black pen regardless of the
+    /// picker's current selection.
+    @ObservationIgnored private var lastKnownPickerTool: PKTool?
+
     init() {
         #if targetEnvironment(macCatalyst)
         mode = .text
@@ -79,6 +85,17 @@ final class ToolCoordinator {
         canvas.tool = currentMacPKTool
         #else
         toolPicker.addObserver(canvas)
+        if let tool = lastKnownPickerTool {
+            canvas.tool = tool
+        }
+        #endif
+    }
+
+    /// Records the picker selection from a live canvas (called before that
+    /// canvas is evicted, and when drawing begins).
+    func noteCurrentTool(from canvas: PKCanvasView) {
+        #if !targetEnvironment(macCatalyst)
+        lastKnownPickerTool = canvas.tool
         #endif
     }
 
