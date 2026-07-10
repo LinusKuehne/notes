@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  # Runs on every push: fast, cheap, and the only automated check for the
+  # model layer. NotesCore is pure Foundation and fully testable on Linux.
+  notescore-tests:
+    name: NotesCore tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: swift test --package-path NotesCore
+
+  # Manually triggered (workflow_dispatch): macOS runner minutes are billed
+  # at 10x on private repos, so this is dispatched deliberately after
+  # app-layer changes rather than on every push. It is the only automated
+  # way to type-check UIKit/PencilKit/SwiftUI code without a Mac.
+  app-build:
+    name: App build (iOS + Mac Catalyst)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Build for iOS
+        run: >
+          xcodebuild build
+          -project Notes.xcodeproj
+          -scheme Notes
+          -destination 'generic/platform=iOS'
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGN_IDENTITY=""
+      - name: Build for Mac Catalyst
+        run: >
+          xcodebuild build
+          -project Notes.xcodeproj
+          -scheme Notes
+          -destination 'platform=macOS,variant=Mac Catalyst'
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGN_IDENTITY=""
