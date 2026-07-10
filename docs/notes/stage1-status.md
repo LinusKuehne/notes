@@ -1,20 +1,23 @@
 # Stage 1 status (2026-07-10)
 
-Branch: `claude/custom-notetaking-app-eu3bc2`. All Stage-1 layers are
-implemented and pushed; see CLAUDE.md for the architecture map and working
-rules.
+Branch: `claude/custom-notetaking-app-eu3bc2`. **Stage 1 is complete and
+fully green in CI** as of commit `a461a3b`; see CLAUDE.md for the
+architecture map and working rules.
 
 ## Verification state
 
-- `notescore-tests` (Linux CI): **green** since the first push.
-- `app-build` (macOS CI, workflow_dispatch): iterating on Swift 6
-  default-MainActor isolation errors. Fixed so far: nonisolated
-  FileWrapperAdapter/PDFExporter/static constants; MainActor.assumeIsolated
-  in UIDocument main-queue callbacks (state observer, save completion).
-  Latest dispatch pending at time of writing — check Actions for the result
-  of commit `a649edc`.
-- A 3-agent review workflow (PencilKit/UIKit, document/sync, model/flow)
-  was dispatched; apply confirmed findings as individual commits.
+- `notescore-tests` (Linux CI): **green** (including NoteMerger ordering
+  regression tests added by the review).
+- `app-build` (macOS CI, workflow_dispatch): **green** — both generic/iOS
+  and Mac Catalyst destinations compile unsigned on the macos-26 runner.
+- A 3-agent review (PencilKit/UIKit, document/sync, model/flow) produced
+  16 findings — all fixed (see the "Apply review findings" commit): zoom
+  transform vs frame corruption, initial fit-width zoom, visible-window
+  refresh on layout, hitTest side effects, tool propagation to new
+  canvases, empty-drawing serialization, conflict merge persisted before
+  version pruning, merger run-reversal, restart stall, and more.
+- NOT yet verified: actual runtime behavior on device — requires the
+  user's Mac/iPad (signing steps in README).
 
 ## Environment facts (do not rediscover)
 
