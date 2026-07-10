@@ -15,9 +15,9 @@ import NotesCore
 /// grays out third-party file-provider folders in the folder picker.)
 @Observable
 final class BackupManager {
-    static let keepCount = 10
+    nonisolated static let keepCount = 10
     /// Minimum time between automatic backups (manual ones are unthrottled).
-    static let minimumInterval: TimeInterval = 5 * 60
+    nonisolated static let minimumInterval: TimeInterval = 5 * 60
 
     private(set) var lastBackupDate: Date?
     private(set) var lastError: String?
@@ -26,8 +26,8 @@ final class BackupManager {
     /// Content timestamp covered by the last backup — skips no-op backups.
     private var lastBackedUpContentDate: Date?
 
-    private static let lastBackupDateKey = "backup.lastDate"
-    private static let driveBookmarkKey = "backup.driveFolderBookmark"
+    private nonisolated static let lastBackupDateKey = "backup.lastDate"
+    private nonisolated static let driveBookmarkKey = "backup.driveFolderBookmark"
 
     init() {
         lastBackupDate = UserDefaults.standard.object(forKey: Self.lastBackupDateKey) as? Date
