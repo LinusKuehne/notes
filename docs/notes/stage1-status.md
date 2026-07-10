@@ -1,8 +1,23 @@
-# Stage 1 status (2026-07-10)
+# Stage 1 + Stage 2 foundation status (2026-07-10)
 
 Branch: `claude/custom-notetaking-app-eu3bc2`. **Stage 1 is complete and
-fully green in CI** as of commit `a461a3b`; see CLAUDE.md for the
-architecture map and working rules.
+the Stage 2 foundation (library organization) is built — both fully green
+in CI** as of commit `99a92b1`; see CLAUDE.md for the architecture map and
+working rules.
+
+## Stage 2 foundation (built while the user is away from a Mac)
+
+- Library = plain directories + `.note` packages in the container; a
+  note's title IS its file name (Files/Finder mirror the app).
+- `LibraryStore`: tree scan + live metadata-query rescans, local→cloud
+  migration with rename-on-collision, coordinated create/rename/move/
+  delete, scratchpad captures into `Unsorted/`, append-note-to-note
+  (connect a capture to a real note; source deleted only after the target
+  wrote). `NoteSession`: the Stage-1 per-note open/sync logic by URL.
+- UI: `LibraryView` browser (context menus, pull-to-refresh, one-tap
+  scratchpad that opens directly), `NotebookScreen` per note.
+- Deliberately deferred until device testing: markdown/LaTeX rendering,
+  text boxes, photos (user decision — Stage 2 UI-heavy features wait).
 
 ## Verification state
 
