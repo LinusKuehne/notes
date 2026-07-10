@@ -8,7 +8,6 @@ import NotesCore
 /// `NotePackageSerializer` (layout) and `FileWrapperAdapter` (incremental
 /// `FileWrapper` reuse so unchanged pages are not rewritten/re-uploaded).
 final class NoteDocument: UIDocument {
-    static let fileName = "Main.note"
     static let typeIdentifier = "com.linuskuehne.notes.note"
 
     private(set) var note = Note()

@@ -31,11 +31,11 @@ nonisolated enum PDFExporter {
         }
     }
 
-    nonisolated static func defaultFileName(for date: Date) -> String {
+    nonisolated static func fileName(title: String, date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd HH.mm"
-        return "Notes \(formatter.string(from: date)).pdf"
+        return "\(title) \(formatter.string(from: date)).pdf"
     }
 
     // MARK: Rendering
@@ -100,11 +100,12 @@ nonisolated enum PDFExporter {
 /// actually happens.
 nonisolated struct NotePDF: Transferable {
     let note: Note
+    let title: String
 
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(exportedContentType: .pdf) { pdf in
             let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent(PDFExporter.defaultFileName(for: Date()))
+                .appendingPathComponent(PDFExporter.fileName(title: pdf.title, date: Date()))
             try PDFExporter.writePDF(for: pdf.note, to: url)
             return SentTransferredFile(url)
         }

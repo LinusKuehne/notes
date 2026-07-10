@@ -23,8 +23,9 @@ final class BackupManager {
     private(set) var lastError: String?
     private(set) var isBackingUp = false
 
-    /// Content timestamp covered by the last backup — skips no-op backups.
-    private var lastBackedUpContentDate: Date?
+    /// Per-note throttling and change detection (keyed by note title).
+    private var lastBackupDates: [String: Date] = [:]
+    private var lastBackedUpContentDates: [String: Date] = [:]
 
     private nonisolated static let lastBackupDateKey = "backup.lastDate"
     private nonisolated static let driveBookmarkKey = "backup.driveFolderBookmark"
@@ -35,28 +36,28 @@ final class BackupManager {
 
     // MARK: Triggers
 
-    /// Called after every successful document save; throttled.
-    func noteSaved(_ note: Note, backupsDirectory: URL?) {
+    /// Called after every successful save of a note; throttled per note.
+    func noteSaved(_ note: Note, title: String, backupsDirectory: URL?) {
         guard let backupsDirectory else { return }
         let contentDate = note.lastModified
-        if let lastBackedUpContentDate, let contentDate, contentDate <= lastBackedUpContentDate {
+        if let covered = lastBackedUpContentDates[title], let contentDate, contentDate <= covered {
             return
         }
-        if let lastBackupDate, Date().timeIntervalSince(lastBackupDate) < Self.minimumInterval {
+        if let last = lastBackupDates[title], Date().timeIntervalSince(last) < Self.minimumInterval {
             return
         }
-        performBackup(note, backupsDirectory: backupsDirectory)
+        performBackup(note, title: title, backupsDirectory: backupsDirectory)
     }
 
-    func backupNow(_ note: Note, backupsDirectory: URL?) {
+    func backupNow(_ note: Note, title: String, backupsDirectory: URL?) {
         guard let backupsDirectory else {
             lastError = "No backup folder is available yet."
             return
         }
-        performBackup(note, backupsDirectory: backupsDirectory)
+        performBackup(note, title: title, backupsDirectory: backupsDirectory)
     }
 
-    private func performBackup(_ note: Note, backupsDirectory: URL) {
+    private func performBackup(_ note: Note, title: String, backupsDirectory: URL) {
         guard !isBackingUp else { return }
         isBackingUp = true
         lastError = nil
@@ -65,9 +66,9 @@ final class BackupManager {
         Task {
             let result = await Task.detached(priority: .utility) { () -> Result<Void, Error> in
                 do {
-                    try Self.writeBackup(of: note, into: backupsDirectory)
+                    try Self.writeBackup(of: note, title: title, into: backupsDirectory)
                     if let mirrorFolder {
-                        try Self.mirror(into: mirrorFolder, note: note)
+                        try Self.mirror(into: mirrorFolder, note: note, title: title)
                     }
                     return .success(())
                 } catch {
@@ -79,7 +80,8 @@ final class BackupManager {
             switch result {
             case .success:
                 lastBackupDate = Date()
-                lastBackedUpContentDate = note.lastModified
+                lastBackupDates[title] = lastBackupDate
+                lastBackedUpContentDates[title] = note.lastModified
                 UserDefaults.standard.set(lastBackupDate, forKey: Self.lastBackupDateKey)
             case .failure(let error):
                 lastError = error.localizedDescription
@@ -90,9 +92,9 @@ final class BackupManager {
 
     // MARK: Writing
 
-    private nonisolated static func writeBackup(of note: Note, into directory: URL) throws {
+    private nonisolated static func writeBackup(of note: Note, title: String, into directory: URL) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent(PDFExporter.defaultFileName(for: Date()))
+        let url = directory.appendingPathComponent(PDFExporter.fileName(title: title, date: Date()))
         var coordinatorError: NSError?
         var writeError: Error?
         NSFileCoordinator(filePresenter: nil).coordinate(
@@ -106,14 +108,14 @@ final class BackupManager {
         }
         if let coordinatorError { throw coordinatorError }
         if let writeError { throw writeError }
-        try rotate(in: directory)
+        try rotate(in: directory, titlePrefix: "\(title) ")
     }
 
-    /// Deletes the oldest backups beyond `keepCount`. The timestamped names
-    /// sort chronologically, so name order is age order.
-    private nonisolated static func rotate(in directory: URL) throws {
+    /// Deletes the oldest backups OF THIS NOTE beyond `keepCount`. The
+    /// timestamped names sort chronologically, so name order is age order.
+    private nonisolated static func rotate(in directory: URL, titlePrefix: String) throws {
         let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
-            .filter { $0.hasPrefix("Notes ") && $0.hasSuffix(".pdf") }
+            .filter { $0.hasPrefix(titlePrefix) && $0.hasSuffix(".pdf") }
             .sorted(by: >)
         for name in names.dropFirst(keepCount) {
             try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
@@ -173,13 +175,13 @@ final class BackupManager {
         #endif
     }
 
-    private nonisolated static func mirror(into folder: URL, note: Note) throws {
+    private nonisolated static func mirror(into folder: URL, note: Note, title: String) throws {
         guard folder.startAccessingSecurityScopedResource() else {
             throw CocoaError(.fileWriteNoPermission)
         }
         defer { folder.stopAccessingSecurityScopedResource() }
 
-        let url = folder.appendingPathComponent(PDFExporter.defaultFileName(for: Date()))
+        let url = folder.appendingPathComponent(PDFExporter.fileName(title: title, date: Date()))
         var coordinatorError: NSError?
         var writeError: Error?
         NSFileCoordinator(filePresenter: nil).coordinate(
@@ -193,7 +195,7 @@ final class BackupManager {
         }
         if let coordinatorError { throw coordinatorError }
         if let writeError { throw writeError }
-        try rotate(in: folder)
+        try rotate(in: folder, titlePrefix: "\(title) ")
     }
 }
 

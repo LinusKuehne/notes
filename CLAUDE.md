@@ -2,8 +2,11 @@
 
 A personal note-taking app for iPad + Mac (Mac Catalyst). Swift 6 / SwiftUI /
 PencilKit / UIDocument+iCloud Drive. Min iPadOS 26 / macOS 26. Stage 1 =
-one synced note of consecutive A4 pages; see `docs/` and the README for the
-roadmap (folders, markdown/LaTeX, text boxes, scratchpad come later).
+one synced note of consecutive A4 pages — done. Stage 2 foundation =
+library organization (folders, multiple notes, scratchpad → Unsorted,
+append-to-note) — done, device-untested. Still later: markdown/LaTeX
+rendering, text boxes, photos (deliberately deferred until the user has
+device-tested; see `docs/notes/`).
 
 ## Working rules (agreed with the user)
 
@@ -38,12 +41,17 @@ roadmap (folders, markdown/LaTeX, text boxes, scratchpad come later).
 - `NotesCore/` — pure-Foundation SwiftPM package, builds/tests on Linux:
   document model (`Note`/`Page`), `manifest.json` codec, `.note` package
   serializer (`FileNode` tree), per-page last-writer-wins `NoteMerger`,
-  A4 geometry (`NotebookLayout`). Keep it free of UIKit/PencilKit imports;
-  PKDrawing data stays opaque `Data`.
+  A4 geometry (`NotebookLayout`), library conventions (`Library`: naming,
+  scratchpad names, `Note.appendPages(of:)`). Keep it free of
+  UIKit/PencilKit imports; PKDrawing data stays opaque `Data`.
 - `NotesApp/Document/` — `NoteDocument` (UIDocument over a directory
-  FileWrapper; incremental child-wrapper reuse), `DocumentStore` (container
-  discovery, download-before-open, local fallback + migration, conflict
-  watch, save-on-background), `ConflictResolver` (NSFileVersion → merge).
+  FileWrapper; incremental child-wrapper reuse), `LibraryStore` (container
+  discovery, local→cloud migration, folder/note tree scan + live metadata
+  query, create/rename/move/delete/append operations — the library is plain
+  directories + `.note` packages; a note's title IS its file name),
+  `NoteSession` (per-note open: download-before-open, conflict watch,
+  save-on-background, close-on-leave), `ConflictResolver` (NSFileVersion →
+  merge, persisted before versions are pruned).
 - `NotesApp/Notebook/` — `NotebookViewController` (zoomable UIScrollView of
   A4 pages in paper points; page virtualization: live PKCanvasView only near
   the viewport — many live canvases cause Metal OOM), `PageView` (text layer
