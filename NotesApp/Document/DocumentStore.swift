@@ -57,8 +57,8 @@ final class DocumentStore {
         identityObserver = NotificationCenter.default.addObserver(
             forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main
         ) { [weak self] _ in
-            nonisolated(unsafe) let self = self
-            MainActor.assumeIsolated { self?.restart() }
+            nonisolated(unsafe) let store = self
+            MainActor.assumeIsolated { store?.restart() }
         }
         locateTask = Task { await locateAndOpen() }
     }
@@ -76,9 +76,9 @@ final class DocumentStore {
             return
         }
         document.close { [weak self] _ in
-            nonisolated(unsafe) let self = self
+            nonisolated(unsafe) let store = self
             MainActor.assumeIsolated {
-                self?.locateTask = Task { await self?.locateAndOpen() }
+                store?.locateTask = Task { await store?.locateAndOpen() }
             }
         }
     }
