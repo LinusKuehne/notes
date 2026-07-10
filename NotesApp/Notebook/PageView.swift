@@ -43,7 +43,8 @@ final class PageView: UIView {
     private var snapshotRenderTask: Task<Void, Never>?
     private(set) var mode: Mode = .snapshot
 
-    static let textInset = UIEdgeInsets(top: 44, left: 44, bottom: 44, right: 44)
+    // nonisolated: the PDF exporter reads this off the main actor.
+    nonisolated static let textInset = UIEdgeInsets(top: 44, left: 44, bottom: 44, right: 44)
 
     // MARK: Init
 

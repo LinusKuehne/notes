@@ -7,7 +7,10 @@ import NotesCore
 /// wrappers whose contents are unchanged, so `FileWrapper`'s incremental
 /// writing skips them on disk and iCloud only uploads the page files that
 /// actually changed.
-enum FileWrapperAdapter {
+/// `nonisolated`: UIDocument calls `contents(forType:)`/`load` off the main
+/// actor, so this bridging must not be bound to it (the app target compiles
+/// with default MainActor isolation).
+nonisolated enum FileWrapperAdapter {
     static func fileNode(from wrapper: FileWrapper) -> FileNode {
         if wrapper.isDirectory {
             var children: [String: FileNode] = [:]

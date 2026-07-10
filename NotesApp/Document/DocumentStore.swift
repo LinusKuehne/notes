@@ -27,13 +27,14 @@ final class DocumentStore {
     /// merge) so views can rebuild.
     private(set) var noteGeneration = 0
 
-    /// Fires after every successful save; the backup pipeline hooks in here.
-    var onSaved: (() -> Void)?
+    let backups = BackupManager()
+    /// `Documents/Backups` in the iCloud container (or local fallback).
+    private(set) var backupsDirectory: URL?
 
     private var stateObserver: (any NSObjectProtocol)?
     private var identityObserver: (any NSObjectProtocol)?
 
-    private static let containerIdentifier = "iCloud.com.linuskuehne.notes"
+    private nonisolated static let containerIdentifier = "iCloud.com.linuskuehne.notes"
 
     // MARK: Locations
 
@@ -79,10 +80,12 @@ final class DocumentStore {
 
         guard let cloudDocuments else {
             storage = .localOnly
+            backupsDirectory = Self.localDocumentsURL.appendingPathComponent("Backups", isDirectory: true)
             await openOrCreate(at: localURL, mergingLocalCopy: nil)
             return
         }
         storage = .iCloud
+        backupsDirectory = cloudDocuments.appendingPathComponent("Backups", isDirectory: true)
         let cloudURL = cloudDocuments.appendingPathComponent(NoteDocument.fileName, isDirectory: true)
         let localExists = FileManager.default.fileExists(atPath: localURL.path)
 
@@ -178,9 +181,9 @@ final class DocumentStore {
         }
         stateObserver = NotificationCenter.default.addObserver(
             forName: UIDocument.stateChangedNotification, object: document, queue: .main
-        ) { [weak self, weak document] _ in
+        ) { [weak document] _ in
             Task { @MainActor in
-                guard let self, let document else { return }
+                guard let document else { return }
                 if document.documentState.contains(.inConflict) {
                     ConflictResolver.resolveConflicts(for: document)
                 }
@@ -198,7 +201,9 @@ final class DocumentStore {
         }
         document.save(to: document.fileURL, for: .forOverwriting) { [weak self] success in
             Task { @MainActor in
-                if success { self?.onSaved?() }
+                if success, let self, let document = self.document {
+                    self.backups.noteSaved(document.note, backupsDirectory: self.backupsDirectory)
+                }
                 completion?()
             }
         }
