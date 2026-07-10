@@ -3,8 +3,10 @@ import Observation
 import NotesCore
 
 /// One entry in the library tree: a folder or a `.note` package.
-struct LibraryItem: Identifiable, Hashable {
-    enum Kind: Hashable {
+/// `nonisolated`: plain value type, also built/compared off the main actor
+/// (the tree scan runs in a detached task).
+nonisolated struct LibraryItem: Identifiable, Hashable, Sendable {
+    enum Kind: Hashable, Sendable {
         case folder
         case note
     }
