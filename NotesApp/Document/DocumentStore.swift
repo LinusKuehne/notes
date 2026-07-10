@@ -181,9 +181,11 @@ final class DocumentStore {
         }
         stateObserver = NotificationCenter.default.addObserver(
             forName: UIDocument.stateChangedNotification, object: document, queue: .main
-        ) { [weak document] _ in
-            Task { @MainActor in
-                guard let document else { return }
+        ) { notification in
+            // queue: .main guarantees the main thread; a Task hop would have
+            // to "send" the non-Sendable document across isolation.
+            MainActor.assumeIsolated {
+                guard let document = notification.object as? NoteDocument else { return }
                 if document.documentState.contains(.inConflict) {
                     ConflictResolver.resolveConflicts(for: document)
                 }
@@ -200,7 +202,9 @@ final class DocumentStore {
             return
         }
         document.save(to: document.fileURL, for: .forOverwriting) { [weak self] success in
-            Task { @MainActor in
+            // UIDocument calls the completion on the queue that initiated the
+            // save — the main queue here.
+            MainActor.assumeIsolated {
                 if success, let self, let document = self.document {
                     self.backups.noteSaved(document.note, backupsDirectory: self.backupsDirectory)
                 }
