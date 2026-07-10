@@ -1,0 +1,4 @@
+// One-time setup on your Mac: put your Apple Developer Team ID here
+// (Xcode ▸ Settings ▸ Accounts ▸ your team ▸ Team ID, a 10-character code).
+// Example: DEVELOPMENT_TEAM = AB12CD34EF
+DEVELOPMENT_TEAM =

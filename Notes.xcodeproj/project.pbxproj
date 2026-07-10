@@ -1,0 +1,237 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D0C0FFEE0000000000000001 /* NotesCore in Frameworks */ = {isa = PBXBuildFile; productRef = D0C0FFEE0000000000000002 /* NotesCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		D0C0FFEE000000000000000A /* Notes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Notes.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0C0FFEE000000000000000D /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		D0C0FFEE000000000000000E /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		D0C0FFEE000000000000000F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		D0C0FFEE0000000000000010 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D0C0FFEE0000000000000005 /* Exceptions for "NotesApp" folder in "Notes" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				NotesApp.entitlements,
+			);
+			target = D0C0FFEE0000000000000011 /* Notes */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D0C0FFEE0000000000000004 /* NotesApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D0C0FFEE0000000000000005 /* Exceptions for "NotesApp" folder in "Notes" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = NotesApp;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D0C0FFEE0000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D0C0FFEE0000000000000001 /* NotesCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D0C0FFEE0000000000000009 = {
+			isa = PBXGroup;
+			children = (
+				D0C0FFEE0000000000000004 /* NotesApp */,
+				D0C0FFEE000000000000000C /* Config */,
+				D0C0FFEE000000000000000B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D0C0FFEE000000000000000B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D0C0FFEE000000000000000A /* Notes.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D0C0FFEE000000000000000C /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				D0C0FFEE000000000000000D /* Shared.xcconfig */,
+				D0C0FFEE000000000000000E /* Debug.xcconfig */,
+				D0C0FFEE000000000000000F /* Release.xcconfig */,
+				D0C0FFEE0000000000000010 /* Signing.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D0C0FFEE0000000000000011 /* Notes */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0C0FFEE0000000000000013 /* Build configuration list for PBXNativeTarget "Notes" */;
+			buildPhases = (
+				D0C0FFEE0000000000000007 /* Sources */,
+				D0C0FFEE0000000000000006 /* Frameworks */,
+				D0C0FFEE0000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D0C0FFEE0000000000000004 /* NotesApp */,
+			);
+			name = Notes;
+			packageProductDependencies = (
+				D0C0FFEE0000000000000002 /* NotesCore */,
+			);
+			productName = Notes;
+			productReference = D0C0FFEE000000000000000A /* Notes.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D0C0FFEE0000000000000012 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					D0C0FFEE0000000000000011 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = D0C0FFEE0000000000000014 /* Build configuration list for PBXProject "Notes" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D0C0FFEE0000000000000009;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D0C0FFEE0000000000000003 /* XCLocalSwiftPackageReference "NotesCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D0C0FFEE000000000000000B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D0C0FFEE0000000000000011 /* Notes */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D0C0FFEE0000000000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D0C0FFEE0000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D0C0FFEE0000000000000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D0C0FFEE000000000000000E /* Debug.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		D0C0FFEE0000000000000016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D0C0FFEE000000000000000F /* Release.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		D0C0FFEE0000000000000017 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D0C0FFEE0000000000000010 /* Signing.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		D0C0FFEE0000000000000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D0C0FFEE0000000000000010 /* Signing.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D0C0FFEE0000000000000013 /* Build configuration list for PBXNativeTarget "Notes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0C0FFEE0000000000000017 /* Debug */,
+				D0C0FFEE0000000000000018 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D0C0FFEE0000000000000014 /* Build configuration list for PBXProject "Notes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0C0FFEE0000000000000015 /* Debug */,
+				D0C0FFEE0000000000000016 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D0C0FFEE0000000000000003 /* XCLocalSwiftPackageReference "NotesCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = NotesCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D0C0FFEE0000000000000002 /* NotesCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NotesCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = D0C0FFEE0000000000000012 /* Project object */;
+}
